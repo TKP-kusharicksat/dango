@@ -13,7 +13,7 @@
 | React | 18.x | 19.x |
 | TypeScript | 5.x | 6.x |
 | Tailwind CSS | 3.x (`tailwind.config.ts`) | 4.x (CSSファイルで`@import`) |
-| ESLint | あり | 削除（教育上使わない方針のため） |
+| Linter/Formatter | ESLint | [Biome](https://biomejs.dev/) |
 
 ## 1. mise をインストールする
 
@@ -22,7 +22,7 @@ Node.js と pnpm のバージョンは `mise.toml` にリポジトリで固定�
 ### macOS / Linux
 
 ```
-curl https://mise.run | sh
+curl -fsSL https://mise.run | sh
 ```
 
 インストール後、シェルの設定（`.zshrc` など）に以下を追加してターミナルを再起動してください。
@@ -58,13 +58,18 @@ scoop install mise
 
 ---
 
-どちらかの方法でインストールできたら、PowerShellのプロファイルに以下を追加してターミナル（PowerShell）を再起動してください。
+どちらかの方法でインストールできたら、miseが管理するnode/pnpm/ghなどのコマンドにPATHを通します（**Scoopでインストールした場合はすでに自動で設定されているので、この手順は不要です**）。
 
-```powershell
-echo '(&mise activate pwsh) | Out-String | Invoke-Expression' >> $HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
-```
+1. PowerShellで以下を実行し、出力される `dirs:` の `shims:` に表示されたパスをメモする
+    ```powershell
+    mise doctor
+    ```
+    例: `C:\Users\ユーザー名\AppData\Local\mise\shims`
+2. スタートメニューで「環境変数」と検索し、「環境変数を編集」（アカウントの環境変数を編集する）を開く
+3. 「〇〇のユーザー環境変数」の一覧から `Path` を選んで「編集」をクリック
+4. 「新規」をクリックし、1でメモしたパスを追加する
+5. 「OK」を押してすべて閉じ、開いているPowerShell・VS Codeをすべて完全に閉じてから開き直す
 
-> プロファイルファイルの場所が無いと言われた場合は、`$HOME\Documents\PowerShell` フォルダを先に作成してから再実行してください。
 > コマンドプロンプト（`cmd.exe`）ではなく **PowerShell** を使ってください。VS Codeのターミナルもデフォルト設定でPowerShellになっているはずです。
 
 ### 共通: インストール確認
@@ -116,7 +121,14 @@ git pull
     ```
 3. もう一度`git remote -v`を実行し、`upstream`が`fetch`・`push`両方の行に表示されればOKです
 
-これで以降、各課題のdocsに書かれている`git fetch upstream && git merge upstream/main`がそのまま使えるようになります。
+`upstream`が確認できたら、このタイミングで一度実行して最新化しておきましょう。
+
+```
+git fetch upstream
+git merge upstream/main
+```
+
+これで以降も、各課題のdocsに書かれている`git fetch upstream && git merge upstream/main`がそのまま使えるようになります。
 
 ## 4. mise でツールを揃える
 
@@ -144,7 +156,7 @@ pnpm install
 | ビルド | `yarn build` | `pnpm build` |
 | 本番起動 | `yarn start` | `pnpm start` |
 | テスト | `yarn test` | `pnpm test` |
-| フォーマット/lint | `yarn format` | なし（ESLint削除のため） |
+| フォーマット/lint | `yarn format` | `pnpm format` / `pnpm lint` |
 | パッケージ追加 | `yarn add <pkg>` | `pnpm add <pkg>` |
 | 開発用パッケージ追加 | `yarn add -D <pkg>` | `pnpm add -D <pkg>` |
 
@@ -187,12 +199,69 @@ rm src/pages/calculator.tsx
 - `tailwind.config.ts` は廃止しました。デフォルト設定のままだったため、v4では設定ファイル自体が不要です。
 - スタイルの起点は `src/styles/globals.css` の `@import 'tailwindcss';` です。クラス名（`bg-cyan-600` など）の使い方自体は変わっていません。
 
-## 10. エディタの ESLint 拡張について
+## 10. エディタの Biome 拡張について
 
-このリポジトリからは ESLint 設定を削除しました。VS Code などで ESLint 拡張を有効にしていると「設定が見つからない」という警告が出ることがありますが、動作に影響はないので無視して問題ありません。気になる場合はこのワークスペースだけ拡張を無効化してください。
+このリポジトリでは ESLint の代わりに [Biome](https://biomejs.dev/) をフォーマッタ/リンタとして使っています。VS Code の場合は拡張機能タブから `Biome`（`biomejs.biome`）をインストールしてください。`.vscode/settings.json` で保存時フォーマット・自動修正を有効にしてあるので、拡張を入れれば追加設定なしで保存するたびに整形・lintが走ります。
+
+ESLint 拡張を有効にしている場合は「設定が見つからない」という警告が出ることがありますが、動作に影響はないので無視して問題ありません。気になる場合はこのワークスペースだけ ESLint 拡張を無効化してください。
 
 ## うまくいかないときは
 
 - `pnpm install` でエラーが出る → `node -v` / `pnpm -v` が `mise.toml` の値と一致しているか確認してください（`mise install` をやり直す）。
+- `node -v` / `pnpm -v` が `mise.toml` の値と一致しない、かつ以前 [Volta](https://volta.sh/) で Node をインストールしたことがある → Voltaが干渉している可能性があります。以下の手順でVoltaを消してください。
+
+    1. 入っているか確認する
+        ```
+        volta --version
+        ```
+        コマンドが見つからなければVoltaは入っていないので、この項目は無視してOKです。
+
+    2. アンインストールする
+
+        (注意) `volta` 本体が残ったまま `volta` コマンドを実行すると、`Updating your Volta directory. This may take a few moments...` と表示されてデータフォルダが作り直されます。このメッセージが出たら本体がまだ残っているということなので、必ず **本体 → データフォルダ → PATHの設定** の順で消してください。
+
+        **macOS / Linux**
+
+        まず本体がどこにあるか確認します。
+        ```
+        which -a volta
+        ```
+        `/opt/homebrew/bin/volta` や `/usr/local/bin/volta` が表示された場合は Homebrew で入れているので、先に本体を消します。
+        ```
+        brew uninstall volta
+        ```
+        続けてデータフォルダを消します。
+        ```
+        rm -rf ~/.volta
+        ```
+        最後にシェルの設定ファイルに Volta の設定が残っていないか探します。
+        ```
+        grep -n -i volta ~/.zshrc ~/.zprofile ~/.zshenv ~/.bashrc ~/.bash_profile ~/.profile 2>/dev/null
+        ```
+        何か表示されたら、そのファイルを開いて該当する行（以下のような行）を削除してください。
+        ```
+        export VOLTA_HOME="$HOME/.volta"
+        export PATH="$VOLTA_HOME/bin:$PATH"
+        ```
+
+        **Windows**
+
+        まず PowerShell で本体がどこにあるか確認します。
+        ```
+        Get-Command volta -All
+        ```
+        入れた方法に合わせて本体をアンインストールしてください。
+        - winget で入れた → `winget uninstall Volta.Volta`
+        - Scoop で入れた → `scoop uninstall volta`
+        - Chocolatey で入れた → `choco uninstall volta`
+        - インストーラー（`.msi`）で入れた、またはわからない → 設定アプリの「アプリと機能」（または「プログラムの追加と削除」）から `Volta` を検索してアンインストール
+
+        続けてデータフォルダを消します。
+        ```
+        Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Volta"
+        ```
+        最後に「環境変数を編集」を開き、ユーザー環境変数とシステム環境変数の `Path` に `Volta` を含む行が残っていれば削除してください。`VOLTA_HOME` という変数が残っていればそれも削除します。
+
+    3. ターミナル（VS Codeの統合ターミナルも含む）をすべて閉じてから開き直し、`volta --version` がコマンドが見つからないエラーになることを確認してください。まだバージョンが表示される場合は、手順2の `which -a volta` / `Get-Command volta -All` で表示された場所に本体が残っています。`node -v` が `mise.toml` の値と一致すれば完了です。
 - 画面が真っ白 / 古いページが表示される → `.next` を消してから `pnpm dev` をやり直してください（macOS/Linux: `rm -rf .next` / Windows: `Remove-Item -Recurse -Force .next`）。
 - それでも解決しない場合は `node_modules` ごと消して `pnpm install` からやり直してください。
