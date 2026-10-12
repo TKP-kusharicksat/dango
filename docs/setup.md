@@ -46,10 +46,16 @@ Node.jsとpnpmのバージョンは、このリポジトリの`mise.toml`とい�
     ```
     `winget`が`認識されません`と言われた場合は、Microsoft Storeで[App Installer](https://apps.microsoft.com/detail/9nblggh4nns1)をインストールしてからもう一度試してください。それでも難しい場合は代わりに[Scoop](https://scoop.sh/)を使う方法もあります(詳しくは[docs/migration.md](migration.md)を参照)。
 
-    インストールできたら、PowerShellのプロファイルに以下を追加してPowerShellを再起動する
-    ```
-    echo '(&mise activate pwsh) | Out-String | Invoke-Expression' >> $HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
-    ```
+    インストールできたら、miseが管理するnode/pnpm/ghなどのコマンドにPATHを通します。
+    1. PowerShellで以下を実行し、出力される `dirs:` の `shims:` に表示されたパスをメモする
+        ```powershell
+        mise doctor
+        ```
+        例: `C:\Users\ユーザー名\AppData\Local\mise\shims`
+    2. スタートメニューで「環境変数」と検索し、「環境変数を編集」（アカウントの環境変数を編集する）を開く
+    3. 「〇〇のユーザー環境変数」の一覧から `Path` を選んで「編集」をクリック
+    4. 「新規」をクリックし、1でメモしたパスを追加する
+    5. 「OK」を押してすべて閉じ、開いているPowerShell・VS Codeをすべて完全に閉じてから開き直す
 1. GitHub CLI(`gh`)をmiseでインストールする
     PowerShellで以下を実行する
     ```
@@ -109,6 +115,7 @@ gh --version
     - `Generate a new SSH key to add to your GitHub account?` → `Yes`
     - パスフレーズを聞かれたら、何も入力せずEnterでよい(空でよい)
     - `Title for your SSH key` → そのままEnter(自動で名前がつく)
+    - `Upload your SSH public key to your GitHub account?` → 矢印キーで`Skip`ではなく、上に表示されている鍵のタイトル（さっき決まった名前）の方を選んでEnter。`Skip`を選ぶと鍵がGitHubに登録されず、この後のログインに失敗します
     - `How would you like to authenticate GitHub CLI?` → `Login with a web browser`
 1. `First copy your one-time code: XXXX-XXXX`と表示されるので、そのコードを覚えておく
 1. Enterを押すとブラウザが開くので、GitHubにログインし、先ほどのコードを入力する
@@ -137,16 +144,19 @@ gh --version
 #### GitHubに自分の書いた内容を適用（Pushという)できるか検証する
 
 1. VSCodeを起動する
-2. File > Open Folderで先ほど持ってきたdangoのディレクトリを指定する
+1. File > Open Folderで先ほど持ってきたdangoのディレクトリを指定する
 1. ためしに`README.md`に何か書いてみる（みられたら困る内容を書かないでください）
-2. VSCodeの画面左、上から3番目のふたまたニョキニョキのアイコンをクリックする
+1. VSCodeの画面左、上から3番目のふたまたニョキニョキのアイコンをクリックする
     ![](../images/setup-0003.png)
     画面でいうと上から、2枚の紙が重なったアイコン、虫眼鏡のアイコンの下
-4. Changesの中にファイル`README.md`があるのでそれにマウスカーソルを載せると`+`が表示されるので押す。押すと`README.md`が`Staged Changes`に変わる
+1. Changesの中にファイル`README.md`があるのでそれにマウスカーソルを載せると`+`が表示されるので押す。押すと`README.md`が`Staged Changes`に変わる
     ![](../images/setup-0004.png)
-6. この状態でその上にあるMessageと書いてあるテキストボックスに適当に何か書き込み、`Commit`という青色のボタンを押す
-7. `Commit`を押すと青色のボタンがリサイクルっぽくなる場合はそれを押す、そうでない場合はそれより上の三点リーダ`...`をクリックし`Push`を押す
-8. GitHubの自分のdangoのトップページを見に行くと、書いた内容が反映されているはず
+1. **まだ`Commit`は押さずに**、`Commit`ボタンのすぐ上にある`Message`と薄く書いてある入力欄をクリックし、変更の説明（コミットメッセージ）を書く。内容は何でもよいです（例: `README.mdを試しに編集`）
+1. 入力欄にメッセージが書けていることを確認してから、`Commit`という青色のボタンを押す
+    - メッセージを書かずに`Commit`を押すと、`COMMIT_EDITMSG`というタブが開いて止まったように見えます。その場合は、そのタブの1行目（`#`で始まる行より上）にメッセージを書き、タブ右上の✓ボタンを押してください（保存してからタブを閉じても同じです）
+    - 何も書かずにタブを閉じた場合は、コミットが中止されるだけです。メッセージを書いてからもう一度`Commit`を押せば大丈夫です
+1. `Commit`を押すと青色のボタンがリサイクルっぽくなる場合はそれを押す、そうでない場合はそれより上の三点リーダ`...`をクリックし`Push`を押す
+1. GitHubの自分のdangoのトップページを見に行くと、書いた内容が反映されているはず
 
 #### サンプルを動かす
 
@@ -155,13 +165,73 @@ gh --version
 3. View > TerminalでTerminalを表示させる
 4. Terminalで`mise trust`を実行する(初回だけ、このリポジトリの`mise.toml`を信頼するか聞かれます)
 5. `mise install`を実行する(Node.jsとpnpmが自動的にインストールされます)
-6. `node -v`と`pnpm -v`を実行し、`command not found`にならないことを確認する
+6. `node -v`と`pnpm -v`を実行し、`command not found`（Windowsでは`not recognized`）にならないことを確認する。うまくいかない場合は下の「うまくいかないときは」を見てください
 7. `pnpm install`を実行する
 8. `pnpm dev`を実行する
 9. ブラウザで<http://localhost:3000>にアクセスするとサンプルが表示される
 
 
 (注意) `pnpm dev`は自動的に終了しないので、自分で終了する必要があります。そのときはTerminalにフォーカスを合わせてCtrl + cする必要があります
+
+## うまくいかないときは
+
+- `mise install`は終わっているはずなのに`node -v` / `pnpm -v`が`command not found`（Windowsでは`not recognized`）になる → インストール自体はできていて、PATHがまだ反映されていないだけのことが多いです。
+    - PATHを設定した（Windowsの上記手順、またはmacOSの`mise activate`）後、ターミナル（VS Codeの統合ターミナルも含む）を一度も開き直していない → すべて閉じてから開き直す
+    - それでも直らない場合は`mise doctor`を実行してエラーを確認してください。`shims_on_path: no`になっている場合は、上のWindowsセットアップ手順（`mise doctor`でshimsのパスを確認し、環境変数に追加する）をやり直してください
+- 以前 [Volta](https://volta.sh/) で Node をインストールしたことがある → Voltaが干渉している可能性があります。以下の手順で確認・アンインストールしてください。
+    1. 入っているか確認する
+        ```
+        volta --version
+        ```
+        コマンドが見つからなければVoltaは入っていないので、この項目は無視してOKです。
+    2. アンインストールする
+
+        (注意) `volta` 本体が残ったまま `volta` コマンドを実行すると、`Updating your Volta directory. This may take a few moments...` と表示されてデータフォルダが作り直されます。このメッセージが出たら本体がまだ残っているということなので、必ず **本体 → データフォルダ → PATHの設定** の順で消してください。
+
+        **macOS / Linux**
+
+        まず本体がどこにあるか確認します。
+        ```
+        which -a volta
+        ```
+        `/opt/homebrew/bin/volta` や `/usr/local/bin/volta` が表示された場合は Homebrew で入れているので、先に本体を消します。
+        ```
+        brew uninstall volta
+        ```
+        続けてデータフォルダを消します。
+        ```
+        rm -rf ~/.volta
+        ```
+        最後にシェルの設定ファイルに Volta の設定が残っていないか探します。
+        ```
+        grep -n -i volta ~/.zshrc ~/.zprofile ~/.zshenv ~/.bashrc ~/.bash_profile ~/.profile 2>/dev/null
+        ```
+        何か表示されたら、そのファイルを開いて該当する行（以下のような行）を削除してください。
+        ```
+        export VOLTA_HOME="$HOME/.volta"
+        export PATH="$VOLTA_HOME/bin:$PATH"
+        ```
+
+        **Windows**
+
+        まず PowerShell で本体がどこにあるか確認します。
+        ```
+        Get-Command volta -All
+        ```
+        入れた方法に合わせて本体をアンインストールしてください。
+        - winget で入れた → `winget uninstall Volta.Volta`
+        - Scoop で入れた → `scoop uninstall volta`
+        - Chocolatey で入れた → `choco uninstall volta`
+        - インストーラー（`.msi`）で入れた、またはわからない → 設定アプリの「アプリと機能」（または「プログラムの追加と削除」）から `Volta` を検索してアンインストール
+
+        続けてデータフォルダを消します。
+        ```
+        Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Volta"
+        ```
+        最後に「環境変数を編集」を開き、ユーザー環境変数とシステム環境変数の `Path` に `Volta` を含む行が残っていれば削除してください。`VOLTA_HOME` という変数が残っていればそれも削除します。
+    3. ターミナル（VS Codeの統合ターミナルも含む）をすべて閉じてから開き直し、`volta --version`がコマンドが見つからないエラーになることを確認してください。まだバージョンが表示される場合は、手順2の`which -a volta` / `Get-Command volta -All`で表示された場所に本体が残っています。`node -v`が期待通りのバージョンになれば完了です
+- 画面が真っ白 / 古いページが表示される → `.next` を消してから `pnpm dev` をやり直してください（macOS/Linux: `rm -rf .next` / Windows: `Remove-Item -Recurse -Force .next`）
+- それでも解決しない場合は `node_modules` ごと消して `pnpm install` からやり直してください
 
 ## 次のステップ
 
